@@ -5,6 +5,7 @@
  * @Description: 
  * Copyright (c) 2025 by 星光, All Rights Reserved. 
  */
+import { Platform } from 'react-native';
 import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
@@ -12,4 +13,9 @@ export interface Spec extends TurboModule {
   downloadApk(path: string, name: string): void;
 }
 
-export default TurboModuleRegistry.getEnforcing<Spec>('EcoApkdownload');
+const NativeEcoApkdownload =
+  Platform.OS =='android'
+    ? TurboModuleRegistry.getEnforcing<Spec>('EcoApkdownload')
+    : ({} as Spec);
+
+export default NativeEcoApkdownload;

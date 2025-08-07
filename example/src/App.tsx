@@ -24,7 +24,7 @@ export default function App() {
 
         }}
         onPress={() =>{
-             downloadApk('https://ceshiapk.ecosteam.cn/ext/ECOSteam.apk?comment=TH0001&auth_key=1754554475-0-0-d7d11c450bf6b7adfb1384eeb220d033', 'ECOSteam'+Date.now())
+             downloadApk('https://ceshiapk.ecosteam.cn/ext/ECOSteam.apk?comment=TH0001&auth_key=1754556625-0-0-c97ac136aa57feaa82e2e2f0ef617a06', 'ECOSteam'+Date.now())
              console.log('5555');
         }}>
             5555</Text>

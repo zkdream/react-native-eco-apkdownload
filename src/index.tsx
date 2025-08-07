@@ -5,8 +5,11 @@
  * @Description: 
  * Copyright (c) 2025 by 星光, All Rights Reserved. 
  */
+import { Platform } from 'react-native';
 import EcoApkdownload from './NativeEcoApkdownload';
 
 export function downloadApk(path: string, name: string): void {
-   EcoApkdownload.downloadApk(path, name);
+  if (Platform.OS == 'android') {
+    EcoApkdownload.downloadApk(path, name);
+  }
 }

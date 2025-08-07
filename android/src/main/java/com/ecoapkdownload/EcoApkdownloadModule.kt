@@ -28,9 +28,6 @@ import com.hjq.http.listener.OnDownloadListener
 import com.hjq.http.model.HttpMethod
 import com.hjq.http.request.HttpRequest
 import com.hjq.permissions.OnPermissionCallback
-import com.hjq.permissions.XXPermissions
-import com.hjq.permissions.permission.PermissionLists
-import com.hjq.permissions.permission.base.IPermission
 import okhttp3.OkHttpClient
 import okhttp3.Response
 import java.io.File
@@ -47,7 +44,7 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
     // See https://reactnative.dev/docs/native-modules-android
     override fun downloadApk(path: String, name: String) {
         Log.d("EcoApkdownload", "downloadApk: $path")
-        var totalSize: Long=0;
+        var totalSize: Long = 0;
 
         val notificationManager =
             reactApplicationContext.getSystemService(NotificationManager::class.java)
@@ -111,20 +108,20 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
             .setHandler(RequestHandler())
             // 设置请求重试次数
             .setRetryCount(1)
-            .setInterceptor(object : IRequestInterceptor{
+            .setInterceptor(object : IRequestInterceptor {
 
                 override fun interceptResponse(
                     httpRequest: HttpRequest<*>?,
                     response: Response?
                 ): Response {
-
-                    val body = response?.body
-
-                    if (body?.contentLength() == -1L) {
-                        val length = response.headers.get("x-oss-meta-content-length")
-                        totalSize = length!!.toLong()
-                    } else {
-                        totalSize = body?.contentLength()!!
+                    response?.let {
+                        val body = response.body
+                        if (body?.contentLength() == -1L) {
+                            val length = response.headers.get("x-oss-meta-content-length")
+                            totalSize = length!!.toLong()
+                        } else {
+                            totalSize = body?.contentLength()!!
+                        }
                     }
                     return super.interceptResponse(httpRequest, response)
 
@@ -151,16 +148,21 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
 
                 override fun onByte(file: File?, totalByte: Long, downloadByte: Long) {
                     super.onByte(file, totalByte, downloadByte)
-                    if(totalSize>downloadByte){
+                    if (totalSize > downloadByte) {
                         val progress = EasyUtils.getProgressProgress(totalSize, downloadByte)
-                        Log.e("sss", "onByte: "+progress )
+                        Log.e("sss", "onByte: " + progress)
                         HProgressDialogUtils.setProgress(progress);
                         // 更新下载通知
                         notificationManager.notify(
                             notificationId, notificationBuilder
                                 // 设置通知的文本
 
-                                .setContentText(String.format(reactApplicationContext.getString(R.string.update_status_running)!!, progress))
+                                .setContentText(
+                                    String.format(
+                                        reactApplicationContext.getString(R.string.update_status_running)!!,
+                                        progress
+                                    )
+                                )
                                 // 设置下载的进度
                                 .setProgress(100, progress, false)
                                 // 设置点击通知后是否自动消失
@@ -175,7 +177,7 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
                 }
 
                 override fun onProgress(file: File, progress: Int) {
-                    Log.e("sss", "progress: "+progress )
+                    Log.e("sss", "progress: " + progress)
 
                 }
 
@@ -184,12 +186,21 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
                     notificationManager.notify(
                         notificationId, notificationBuilder
                             // 设置通知的文本
-                            .setContentText(String.format(reactApplicationContext.getString(R.string.update_status_successful)!!, 100))
+                            .setContentText(
+                                String.format(
+                                    reactApplicationContext.getString(R.string.update_status_successful)!!,
+                                    100
+                                )
+                            )
                             // 设置下载的进度
                             .setProgress(100, 100, false)
                             // 设置通知点击之后的意图
-                            .setContentIntent(PendingIntent.getActivity(reactApplicationContext, 1, getInstallIntent(apkFile),
-                                Intent.FILL_IN_ACTION or PendingIntent.FLAG_IMMUTABLE))
+                            .setContentIntent(
+                                PendingIntent.getActivity(
+                                    reactApplicationContext, 1, getInstallIntent(apkFile),
+                                    Intent.FILL_IN_ACTION or PendingIntent.FLAG_IMMUTABLE
+                                )
+                            )
                             // 设置点击通知后是否自动消失
                             .setAutoCancel(true)
                             // 是否正在交互中
@@ -200,14 +211,14 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
 //                    // 标记成下载完成
 //                    downloadComplete = true
 
-                    Log.e("sss", "onComplete: "+file.path )
+                    Log.e("sss", "onComplete: " + file.path)
                     HProgressDialogUtils.cancel()
                     // 安装 Apk
                     installApk(apkFile)
                 }
 
                 override fun onError(file: File, e: Exception) {
-                    Log.e("sss", "Exception: "+file.path )
+                    Log.e("sss", "Exception: " + file.path)
                     HProgressDialogUtils.cancel()
                     // 清除通知
                     notificationManager.cancel(notificationId)
@@ -225,25 +236,20 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
     }
 
     private fun installApk(mApkFile: File) {
-        XXPermissions.with(reactApplicationContext) // 申请多个权限
-            .permission(PermissionLists.getRequestInstallPackagesPermission())
-            .request(object : OnPermissionCallback {
-                override fun onGranted(
-                    permissions: MutableList<IPermission?>,
-                    allGranted: Boolean
-                ) {
-                    if (allGranted) {
-                        reactApplicationContext.startActivity(getInstallIntent(mApkFile))
-                    } else {
-                        Toast.makeText(reactApplicationContext,"没有安装权限",Toast.LENGTH_LONG).show()
-                        val intent: Intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                        intent.data = Uri.parse("package:" + reactApplicationContext.packageName)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        reactApplicationContext.startActivity(intent)
-                        return
-                    }
-                }
-            })
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val packageManager = reactApplicationContext.packageManager
+            if (!packageManager.canRequestPackageInstalls()) {
+                // 没有权限，跳转到设置页面
+                val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                intent.data = Uri.parse("package:" + reactApplicationContext.packageName)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                reactApplicationContext.startActivity(intent)
+                Toast.makeText(reactApplicationContext, "请授权允许安装未知来源应用", Toast.LENGTH_LONG).show()
+                return
+            }
+        }
+        // 有权限，直接安装
+        reactApplicationContext.startActivity(getInstallIntent(mApkFile))
     }
 
     /**
@@ -267,7 +273,7 @@ class EcoApkdownloadModule(reactContext: ReactApplicationContext) :
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return intent
     }
-    
+
 
     companion object {
         const val NAME = "EcoApkdownload"

@@ -83,6 +83,7 @@ def kotlin_version = getExtOrDefault("kotlinVersion")
 dependencies {
     implementation "com.facebook.react:react-android"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'androidx.collection:collection:1.2.0'
     // 网络请求框架：https://github.com/getActivity/EasyHttp
 //    implementation 'com.github.getActivity:EasyHttp:13.0'
 //    // OkHttp 框架：https://github.com/square/okhttp
@@ -93,7 +94,7 @@ dependencies {
     // noinspection GradleDependency
     implementation 'com.squareup.okhttp3:okhttp:3.12.13'
 
-    implementation 'com.github.getActivity:XXPermissions:25.2'
+    implementation 'com.github.getActivity:XXPermissions:18.5' 
 }
 
 react {
